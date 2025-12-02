@@ -1,0 +1,145 @@
+<div class={@issues_phoenix_class}>
+  <div class="container">
+    <div class="headings">
+      <h1>{@page_title}</h1>
+      <p>
+        Report an issue for a specific route. Select the route, describe the problem, and set priority.
+      </p>
+      <div class="actions">
+        <.link href="/dev/issues" class="secondary">Cancel</.link>
+      </div>
+    </div>
+
+    <.form
+      for={@form}
+      phx-change="validate"
+      phx-submit="save"
+      class="mt-8"
+    >
+      <fieldset>
+        <label>
+          Route
+          <.input
+            field={@form[:tracked_route_id]}
+            type="select"
+            options={@route_options}
+            prompt="Select a route..."
+          />
+          <small>
+            Routes are organized by category. Select the route where the issue occurred.
+          </small>
+        </label>
+
+        <%= if @selected_route do %>
+          <article class="route-preview">
+            <header>Route Details</header>
+            <dl>
+              <dt>Method</dt>
+              <dd><code>{@selected_route.method}</code></dd>
+
+              <dt>Path</dt>
+              <dd><code>{@selected_route.path}</code></dd>
+
+              <dt>Controller</dt>
+              <dd>{@selected_route.controller}</dd>
+
+              <%= if @selected_route.action do %>
+                <dt>Action</dt>
+                <dd>{@selected_route.action}</dd>
+              <% end %>
+
+              <%= if @selected_route.category do %>
+                <dt>Category</dt>
+                <dd>{@selected_route.category}</dd>
+              <% end %>
+
+              <dt>Type</dt>
+              <dd>
+                <span class={"badge #{if @selected_route.route_type == :controller, do: "badge-in-progress", else: "badge-open"}"}>
+                  {if @selected_route.route_type == :controller,
+                    do: "Controller",
+                    else: "LiveView"}
+                </span>
+              </dd>
+            </dl>
+          </article>
+        <% end %>
+
+        <label>
+          Title *
+          <.input field={@form[:title]} type="text" placeholder="Brief description of the issue" />
+        </label>
+
+        <label>
+          Description
+          <.input
+            field={@form[:description]}
+            type="textarea"
+            rows="4"
+            placeholder="Detailed description of the issue..."
+          />
+        </label>
+
+        <div class="grid">
+          <label>
+            Priority *
+            <.input
+              field={@form[:priority]}
+              type="select"
+              options={[
+                {"Low", :low},
+                {"Medium", :medium},
+                {"High", :high},
+                {"Critical", :critical}
+              ]}
+            />
+          </label>
+
+          <label>
+            Status *
+            <.input
+              field={@form[:status]}
+              type="select"
+              options={[
+                {"Open", :open},
+                {"In Progress", :in_progress},
+                {"Resolved", :resolved},
+                {"Closed", :closed}
+              ]}
+            />
+          </label>
+        </div>
+
+        <div class="grid">
+          <label>
+            Tags
+            <select
+              multiple
+              name="tags[]"
+              phx-change="update_selected_tags"
+              size="5"
+            >
+              <%= for tag <- @all_tags do %>
+                <option value={tag.id} selected={tag.id in @selected_tag_ids}>
+                  {tag.name}
+                </option>
+              <% end %>
+            </select>
+            <small>Hold Ctrl (Cmd on Mac) to select multiple tags</small>
+          </label>
+
+          <label>
+            Create New Tag
+            <.link navigate="/dev/issues/tags/new" role="button">
+              + Add New Tag
+            </.link>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="grid">
+        <.button type="submit">Save</.button>
+      </div>
+    </.form>
+  </div>
+</div>
