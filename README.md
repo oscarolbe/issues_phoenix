@@ -21,7 +21,7 @@ Add `issues_phoenix` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:issues_phoenix, github: "oscarolbe/issues_phoenix"}
+    {:issues_phoenix, github: "oscarolbe/issues_phoenix", branch: "master"}
   ]
 end
 ```
