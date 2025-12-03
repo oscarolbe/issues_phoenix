@@ -2,7 +2,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
   use IssuesPhoenixWeb, :live_view
 
   alias IssuesPhoenix.{Issues, TrackedRoutes, Config}
-  alias IssuesPhoenix.Schemas.{Tag, Category}
+  alias IssuesPhoenix.Schemas.Tag
 
   @impl true
   def mount(_params, _session, socket) do
@@ -12,7 +12,6 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
      |> assign(:filter_status, :open)
      |> assign(:filter_priority, nil)
      |> assign(:filter_tag_id, nil)
-     |> assign(:filter_category_id, nil)
      |> reload_data()}
   end
 
@@ -35,14 +34,12 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
   @impl true
   def handle_event("filter", params, socket) do
     filter_status = if params["status"] == "", do: nil, else: String.to_atom(params["status"] || "")
-    filter_tag_id = if params["tag_id"] == "", do: nil, else: String.to_integer(params["tag_id"] || "0")
-    filter_category_id = if params["category_id"] == "", do: nil, else: String.to_integer(params["category_id"] || "0")
+    filter_tag_id = if params["tag_id"] in [nil, ""], do: nil, else: String.to_integer(params["tag_id"])
 
     {:noreply,
      socket
      |> assign(:filter_status, filter_status)
      |> assign(:filter_tag_id, filter_tag_id)
-     |> assign(:filter_category_id, filter_category_id)
      |> reload_data()}
   end
 
@@ -65,17 +62,13 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
     # Load all base data
     tracked_routes = TrackedRoutes.list_tracked_routes()
     all_tags = Config.repo().all(Tag) |> Enum.sort_by(& &1.name)
-    all_categories = Config.repo().all(Category) |> Enum.sort_by(& &1.name)
     stats = Issues.stats()
 
     # Load issues with current filters applied
     issues =
       filter_issues_by_tag(
-        filter_issues_by_category(
-          Issues.list_issues(status: socket.assigns.filter_status)
-          |> Config.repo().preload([:tracked_route, :tags]),
-          socket.assigns.filter_category_id
-        ),
+        Issues.list_issues(status: socket.assigns.filter_status)
+        |> Config.repo().preload([:tracked_route, :tags]),
         socket.assigns.filter_tag_id
       )
 
@@ -83,7 +76,6 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
     |> assign(:issues, issues)
     |> assign(:tracked_routes, tracked_routes)
     |> assign(:all_tags, all_tags)
-    |> assign(:all_categories, all_categories)
     |> assign(:stats, stats)
   end
 
@@ -91,13 +83,6 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
   defp filter_issues_by_tag(issues, tag_id) do
     Enum.filter(issues, fn issue ->
       Enum.any?(issue.tags, &(&1.id == tag_id))
-    end)
-  end
-
-  defp filter_issues_by_category(issues, nil), do: issues
-  defp filter_issues_by_category(issues, category_id) do
-    Enum.filter(issues, fn issue ->
-      issue.tracked_route && issue.tracked_route.category_id == category_id
     end)
   end
 
