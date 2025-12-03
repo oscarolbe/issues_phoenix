@@ -17,7 +17,7 @@ defmodule IssuesPhoenixWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt pico.min.css)
 
   @doc """
   Macro for host applications to mount Issues Phoenix routes.
@@ -61,7 +61,6 @@ defmodule IssuesPhoenixWeb do
         # HTML structure and styling, avoiding conflicts with host app's layout
         live_session :issues_phoenix,
           on_mount: {IssuesPhoenixWeb.Hooks, :add_css_scope} do
-
           live "/", IssuesPhoenixWeb.IssuesLive.Index, :index
           live "/new", IssuesPhoenixWeb.IssuesLive.Form, :new
           live "/:id/edit", IssuesPhoenixWeb.IssuesLive.Form, :edit
@@ -80,7 +79,7 @@ defmodule IssuesPhoenixWeb do
       import Plug.Conn
       import Phoenix.Controller
       import Phoenix.LiveView.Router
-      
+
       # Import our routing macro
       import IssuesPhoenixWeb, only: [issues_phoenix_routes: 1, issues_phoenix_routes: 2]
     end
