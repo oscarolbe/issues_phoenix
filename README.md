@@ -118,6 +118,8 @@ end
 >   plug :fetch_live_flash
 >   plug :protect_from_forgery
 >   plug :put_secure_browser_headers
+>   # Optional: Add basic authentication
+>   plug :basic_auth, username: "username", password: "secret"
 >   # Do NOT include :put_root_layout or :put_layout
 > end
 >
@@ -141,9 +143,21 @@ Visit `/dev/issues` (or your configured path) to start tracking issues.
 ## Configuration Options
 
 ```elixir
+# Either in config/dev.exs or config/prod.exs
+# Depending on your environment
+config :rent, dev_routes: true
+
 config :issues_phoenix,
   repo: MyApp.Repo,                           # Required: Your Ecto repository
   assets_path: "/issues_phoenix/assets"       # Optional: Custom assets path
+
+# Configure IssuesPhoenix.Repo to use your current database
+config :issues_phoenix, IssuesPhoenix.Repo,
+  # url: database_url # Alternatively, use a DATABASE_URL environment variable
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "db_dev"
 ```
 
 ## Database Schema
