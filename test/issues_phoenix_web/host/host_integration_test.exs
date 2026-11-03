@@ -147,6 +147,18 @@ defmodule IssuesPhoenixWeb.HostIntegrationTest do
       assert has_element?(view, ~s|a[href="/admin/tracker"]|)
     end
 
+    test "handles plug routes whose options are a keyword list", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/admin/tracker/routes")
+
+      view
+      |> element(~s|button[phx-value-path="/host/forwarded"]|)
+      |> render_click()
+
+      tracked = TrackedRoutes.get_by_path_and_method("/host/forwarded", "*")
+      assert tracked.action == nil
+      assert has_element?(view, "td", "/host/forwarded")
+    end
+
     @tag issues_phoenix_env: [router: IssuesPhoenixWeb.Router]
     test "an explicitly configured router still wins", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/admin/tracker/routes")

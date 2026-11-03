@@ -26,6 +26,9 @@ defmodule TestHost.Router do
     pipe_through :browser
 
     get "/host/page", TestHost.PagePlug, []
+    # Plugs with options (e.g. `forward "/mcp", SomeServer, server: ...`) have
+    # a keyword list where controller routes have an action atom.
+    forward "/host/forwarded", TestHost.PagePlug, server: TestHost.Repo
   end
 
   scope "/admin" do

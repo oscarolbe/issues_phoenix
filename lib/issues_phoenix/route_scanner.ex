@@ -108,7 +108,7 @@ defmodule IssuesPhoenix.RouteScanner do
         path: path,
         method: verb |> to_string() |> String.upcase(),
         controller: controller,
-        action: action,
+        action: normalize_action(action),
         helper: helper || "N/A",
         type: route_type
       }
@@ -116,6 +116,11 @@ defmodule IssuesPhoenix.RouteScanner do
   end
 
   defp extract_route_info(_), do: nil
+
+  # Controller and LiveView routes carry an action atom in `plug_opts`; plain
+  # plugs and `forward` carry their init options (often a keyword list).
+  defp normalize_action(action) when is_atom(action), do: action
+  defp normalize_action(_plug_opts), do: nil
 
   # Extract LiveView module from metadata if this is a LiveView route
   defp get_live_view_module(Phoenix.LiveView.Plug, metadata) when is_map(metadata) do
