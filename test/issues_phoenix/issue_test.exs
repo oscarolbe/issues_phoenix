@@ -153,6 +153,5 @@ defmodule IssuesPhoenix.IssueTest do
     test "has tags association" do
       assert %Ecto.Association.ManyToMany{} = Issue.__schema__(:association, :tags)
     end
-
   end
 end

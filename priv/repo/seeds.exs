@@ -10,7 +10,8 @@
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
 
-alias IssuesPhoenix.{Repo, Category}
+alias IssuesPhoenix.Repo
+alias IssuesPhoenix.Schemas.Category
 
 # Seed default categories for IssuesPhoenix
 IO.puts("Seeding default categories...")
@@ -22,6 +23,7 @@ Category.default_categories()
       %Category{}
       |> Category.changeset(category_attrs)
       |> Repo.insert!()
+
       IO.puts("  ✓ Created category: #{category_attrs.name}")
 
     _existing ->

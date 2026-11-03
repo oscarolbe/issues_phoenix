@@ -28,7 +28,16 @@ defmodule IssuesPhoenix.Schemas.TrackedRoute do
   @doc false
   def changeset(tracked_route, attrs) do
     tracked_route
-    |> cast(attrs, [:path, :method, :controller, :action, :route_type, :enabled, :category, :display_order])
+    |> cast(attrs, [
+      :path,
+      :method,
+      :controller,
+      :action,
+      :route_type,
+      :enabled,
+      :category,
+      :display_order
+    ])
     |> validate_required([:path, :method, :controller, :route_type])
     |> validate_number(:display_order, greater_than_or_equal_to: 0)
     |> unique_constraint([:path, :method], name: :tracked_routes_path_method_index)

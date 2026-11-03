@@ -133,7 +133,10 @@ defmodule IssuesPhoenixWeb.CoreComponents do
   end
 
   def input(%{type: "checkbox"} = assigns) do
-    assigns = assign_new(assigns, :checked, fn -> Phoenix.HTML.Form.normalize_value("checkbox", assigns[:value]) end)
+    assigns =
+      assign_new(assigns, :checked, fn ->
+        Phoenix.HTML.Form.normalize_value("checkbox", assigns[:value])
+      end)
 
     ~H"""
     <div class="fieldset">
@@ -151,7 +154,13 @@ defmodule IssuesPhoenixWeb.CoreComponents do
     <div class="fieldset">
       <label>
         <span :if={@label}>{@label}</span>
-        <input type={@type} name={@name} id={@id} value={Phoenix.HTML.Form.normalize_value(@type, @value)} {@rest} />
+        <input
+          type={@type}
+          name={@name}
+          id={@id}
+          value={Phoenix.HTML.Form.normalize_value(@type, @value)}
+          {@rest}
+        />
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>

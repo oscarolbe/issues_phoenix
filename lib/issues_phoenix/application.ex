@@ -1,22 +1,34 @@
 defmodule IssuesPhoenix.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
   @moduledoc false
 
   use Application
 
   @impl true
   def start(_type, _args) do
-    children = [
-      IssuesPhoenix.Repo
-    ] ++ children(Application.get_env(:issues_phoenix, :start_endpoint))
-
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: IssuesPhoenix.Supervisor]
-    Supervisor.start_link(children, opts)
+    children = children(Application.get_all_env(:issues_phoenix))
+    Supervisor.start_link(children, strategy: :one_for_one, name: IssuesPhoenix.Supervisor)
   end
 
-  defp children(true), do: [IssuesPhoenixWeb.Endpoint]
-  defp children(_), do: []
+  @doc """
+  Returns the processes to supervise for the given `:issues_phoenix` env.
+
+  When used as a dependency the library starts nothing: all queries go through
+  the host's repo (`config :issues_phoenix, repo: MyApp.Repo`) and pages are
+  served by the host's endpoint.
+
+  `standalone: true` (set in this project's dev/test config) starts the
+  development harness from `dev/`. Those modules are not compiled when the
+  library is used as a dependency.
+  """
+  def children(env) do
+    if Keyword.get(env, :standalone, false) do
+      [
+        IssuesPhoenix.Repo,
+        {Phoenix.PubSub, name: IssuesPhoenix.PubSub},
+        IssuesPhoenixWeb.Endpoint
+      ]
+    else
+      []
+    end
+  end
 end

@@ -6,7 +6,7 @@
         Report an issue for a specific route. Select the route, describe the problem, and set priority.
       </p>
       <div class="actions">
-        <.link href="/dev/issues" class="secondary">Cancel</.link>
+        <.link href={@base_path} class="secondary">Cancel</.link>
       </div>
     </div>
 
@@ -130,7 +130,7 @@
 
           <label>
             Create New Tag
-            <.link navigate="/dev/issues/tags/new" role="button">
+            <.link navigate={"#{@base_path}/tags/new"} role="button">
               + Add New Tag
             </.link>
           </label>

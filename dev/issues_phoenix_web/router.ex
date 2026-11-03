@@ -1,36 +1,35 @@
 defmodule IssuesPhoenixWeb.Router do
+  @moduledoc false
+  # Standalone dev/test harness router. Mounts the library exactly the way the
+  # README tells host apps to.
+  use Phoenix.Router, helpers: false
   use IssuesPhoenixWeb, :router
+
+  import Plug.Conn
+  import Phoenix.Controller
+  import Phoenix.LiveView.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
-    plug :put_root_layout, html: {IssuesPhoenixWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-  end
-
-  pipeline :api do
-    plug :accepts, ["json"]
   end
 
   scope "/", IssuesPhoenixWeb do
     pipe_through :browser
 
-    # get "/", PageController, :home
     if Mix.env() == :test do
       get "/dummy", DummyController, :index
     end
+
     live "/demo", DemoLive
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", IssuesPhoenixWeb do
-  #   pipe_through :api
-  # end
+  scope "/" do
+    pipe_through :browser
 
-  # Enable IssuesPhoenix dashboard in development
-  if Application.compile_env(:issues_phoenix, :dev_routes) do
     issues_phoenix_routes "/dev/issues"
   end
 end

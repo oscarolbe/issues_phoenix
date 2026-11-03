@@ -8,11 +8,10 @@ config :issues_phoenix, IssuesPhoenix.Repo,
   database: "issues_phoenix_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
-config :issues_phoenix, start_endpoint: true
+# Run the standalone harness in dev/ (repo + endpoint). Host apps never set this.
+config :issues_phoenix, standalone: true, repo: IssuesPhoenix.Repo
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -65,9 +64,6 @@ config :issues_phoenix, IssuesPhoenixWeb.Endpoint,
       ~r"lib/issues_phoenix_web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"
     ]
   ]
-
-# Enable dev routes for dashboard and mailbox
-config :issues_phoenix, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"

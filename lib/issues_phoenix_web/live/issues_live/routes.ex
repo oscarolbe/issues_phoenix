@@ -1,11 +1,11 @@
 defmodule IssuesPhoenixWeb.IssuesLive.Routes do
   use IssuesPhoenixWeb, :live_view
 
-  alias IssuesPhoenix.{RouteScanner, TrackedRoutes, Config}
+  alias IssuesPhoenix.{RouteScanner, TrackedRoutes}
 
   @impl true
   def mount(_params, _session, socket) do
-    router = Config.router()
+    router = socket.assigns.issues_phoenix_router
     scanned_routes = RouteScanner.scan_routes(router)
     tracked_routes = TrackedRoutes.list_tracked_routes()
 
@@ -31,7 +31,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Routes do
 
   @impl true
   def handle_event("scan_routes", _params, socket) do
-    router = Config.router()
+    router = socket.assigns.issues_phoenix_router
     scanned_routes = RouteScanner.scan_routes(router)
     tracked_routes = TrackedRoutes.list_tracked_routes()
 
@@ -247,11 +247,6 @@ defmodule IssuesPhoenixWeb.IssuesLive.Routes do
 
   @impl true
   def render(assigns) do
-    assigns =
-      assigns
-      |> Map.put_new(:issues_phoenix_class, "issues-phoenix")
-      |> Map.put_new(:assets_path, Config.assets_path())
-
     ~H"""
     <div class={@issues_phoenix_class}>
       <div class="container">
@@ -260,11 +255,11 @@ defmodule IssuesPhoenixWeb.IssuesLive.Routes do
           <p>Scan your application routes and select which ones to track for issues.</p>
           <div class="actions">
             <button phx-click="scan_routes">Scan Routes</button>
-            <.link navigate="/dev/issues" role="button" class="secondary">Back to Issues</.link>
+            <.link navigate={@base_path} role="button" class="secondary">Back to Issues</.link>
           </div>
         </div>
         
-      <!-- Tracked Routes Section -->
+    <!-- Tracked Routes Section -->
         <section>
           <header>
             <h3>Currently Tracked Routes ({length(@tracked_routes)})</h3>
@@ -290,29 +285,33 @@ defmodule IssuesPhoenixWeb.IssuesLive.Routes do
               <tbody>
                 <%= for route <- @tracked_routes do %>
                   <tr class={if(@editing_route_id == route.id, do: "editing", else: "")}>
-                      <td>
-                        <div>
-                          <span class="badge">{route.display_order}</span>
-                          <div>
-                            <button
-                              type="button"
-                              phx-click="move_up"
-                              phx-value-id={route.id}
-                              class="icon-btn"
-                              title="Move up"
-                            >▲</button>
-                            <button
-                              type="button"
-                              phx-click="move_down"
-                              phx-value-id={route.id}
-                              class="icon-btn"
-                              title="Move down"
-                            >▼</button>
-                          </div>
-                        </div>
-                      </td>
                     <td>
-                      <code style="font-size: 0.75rem;">{route.method}</code> {route.path} <br/>
+                      <div>
+                        <span class="badge">{route.display_order}</span>
+                        <div>
+                          <button
+                            type="button"
+                            phx-click="move_up"
+                            phx-value-id={route.id}
+                            class="icon-btn"
+                            title="Move up"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            phx-click="move_down"
+                            phx-value-id={route.id}
+                            class="icon-btn"
+                            title="Move down"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <code style="font-size: 0.75rem;">{route.method}</code> {route.path} <br />
                       <.route_type_badge type={route.route_type} />
                     </td>
                     <%= if @editing_route_id == route.id do %>
@@ -388,7 +387,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Routes do
           <% end %>
         </section>
         
-      <!-- Available Routes Section -->
+    <!-- Available Routes Section -->
         <section>
           <header>
             <h3>Available Routes ({length(@scanned_routes)})</h3>

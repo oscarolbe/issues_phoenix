@@ -132,13 +132,13 @@ defmodule IssuesPhoenix.RouteScanner do
     live_view_name = if live_view_module, do: inspect(live_view_module), else: ""
 
     # Skip Phoenix internal routes
+    # Skip Phoenix LiveDashboard routes (internal dev tool)
+    # Skip static file routes
+    # Skip LiveDashboard Assets
     String.starts_with?(path, "/_") ||
-      # Skip Phoenix LiveDashboard routes (internal dev tool)
       String.contains?(plug_name, "LiveDashboard") ||
       String.contains?(live_view_name, "LiveDashboard") ||
-      # Skip static file routes
       String.contains?(plug_name, "Plug.Static") ||
-      # Skip LiveDashboard Assets
       String.contains?(plug_name, "Phoenix.LiveDashboard.Assets")
   end
 end

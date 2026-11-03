@@ -6,8 +6,8 @@ defmodule IssuesPhoenix.Issues do
   """
 
   import Ecto.Query, warn: false
-  alias IssuesPhoenix.Config
-  alias IssuesPhoenix.Schemas.Issue
+  alias IssuesPhoenix.DB
+  alias IssuesPhoenix.Schemas.{Issue, Tag}
 
   @doc """
   Returns the list of issues.
@@ -28,12 +28,10 @@ defmodule IssuesPhoenix.Issues do
 
   """
   def list_issues(opts \\ []) do
-    repo = Config.repo()
-
     Issue
     |> apply_filters(opts)
-    |> order_by([i], [desc: i.inserted_at])
-    |> repo.all()
+    |> order_by([i], desc: i.inserted_at)
+    |> DB.all()
   end
 
   @doc """
@@ -51,8 +49,7 @@ defmodule IssuesPhoenix.Issues do
 
   """
   def get_issue!(id) do
-    repo = Config.repo()
-    repo.get!(Issue, id)
+    DB.get!(Issue, id)
   end
 
   @doc """
@@ -68,11 +65,9 @@ defmodule IssuesPhoenix.Issues do
 
   """
   def create_issue(attrs \\ %{}) do
-    repo = Config.repo()
-
     %Issue{}
     |> Issue.changeset(attrs)
-    |> repo.insert()
+    |> DB.insert()
   end
 
   @doc """
@@ -88,11 +83,9 @@ defmodule IssuesPhoenix.Issues do
 
   """
   def update_issue(%Issue{} = issue, attrs) do
-    repo = Config.repo()
-
     issue
     |> Issue.changeset(attrs)
-    |> repo.update()
+    |> DB.update()
   end
 
   @doc """
@@ -108,8 +101,7 @@ defmodule IssuesPhoenix.Issues do
 
   """
   def delete_issue(%Issue{} = issue) do
-    repo = Config.repo()
-    repo.delete(issue)
+    DB.delete(issue)
   end
 
   @doc """
@@ -158,23 +150,85 @@ defmodule IssuesPhoenix.Issues do
 
   """
   def stats do
-    repo = Config.repo()
-
-    statuses = ["open", "in_progress", "resolved", "closed"]
-
     status_counts =
-      Enum.reduce(statuses, %{}, fn status, acc ->
-        count =
-          Issue
-          |> where([i], i.status == ^status)
-          |> repo.aggregate(:count)
-
-        Map.put(acc, String.to_atom(status), count)
+      Map.new(statuses(), fn status ->
+        {status, Issue |> where([i], i.status == ^status) |> DB.aggregate(:count)}
       end)
 
-    total = repo.aggregate(Issue, :count)
+    Map.put(status_counts, :total, DB.aggregate(Issue, :count))
+  end
 
-    Map.put(status_counts, :total, total)
+  @doc """
+  All valid issue statuses, as atoms.
+  """
+  def statuses, do: Ecto.Enum.values(Issue, :status)
+
+  @doc """
+  Parses a status coming from user input without creating atoms.
+
+  Returns `nil` for blank or unknown values.
+
+      iex> parse_status("open")
+      :open
+
+      iex> parse_status("bogus")
+      nil
+  """
+  def parse_status(value) when is_binary(value) do
+    Enum.find(statuses(), &(Atom.to_string(&1) == value))
+  end
+
+  def parse_status(_), do: nil
+
+  @doc """
+  Gets an issue with its tracked route and tags preloaded.
+  """
+  def get_issue_with_assocs!(id), do: id |> get_issue!() |> DB.preload([:tracked_route, :tags])
+
+  @doc """
+  Lists issues (see `list_issues/1`) with tracked route and tags preloaded.
+
+  Also accepts `:tag_id` to only return issues carrying that tag.
+  """
+  def list_issues_with_assocs(opts \\ []) do
+    opts
+    |> list_issues()
+    |> DB.preload([:tracked_route, :tags])
+    |> filter_by_tag(Keyword.get(opts, :tag_id))
+  end
+
+  defp filter_by_tag(issues, nil), do: issues
+
+  defp filter_by_tag(issues, tag_id) do
+    Enum.filter(issues, fn issue -> Enum.any?(issue.tags, &(&1.id == tag_id)) end)
+  end
+
+  @doc """
+  Replaces the tags of an issue with the tags whose ids are given.
+  """
+  def set_issue_tags(%Issue{} = issue, tag_ids) when is_list(tag_ids) do
+    tags = if tag_ids == [], do: [], else: DB.all(from t in Tag, where: t.id in ^tag_ids)
+
+    issue
+    |> DB.preload(:tags)
+    |> Ecto.Changeset.change()
+    |> Ecto.Changeset.put_assoc(:tags, tags)
+    |> DB.update()
+  end
+
+  @doc """
+  Lists all tags ordered by name.
+  """
+  def list_tags, do: DB.all(from t in Tag, order_by: t.name)
+
+  @doc """
+  Returns the tag with the given name, creating it if needed.
+  """
+  def find_or_create_tag(name) when is_binary(name) do
+    case DB.get_by(Tag, name: name) do
+      nil -> %Tag{} |> Tag.changeset(%{name: name}) |> DB.insert()
+      tag -> {:ok, tag}
+    end
   end
 
   # Private functions

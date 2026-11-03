@@ -41,6 +41,9 @@ config :issues_phoenix,
   repo: MyApp.Repo  # Your application's Ecto repository
 ```
 
+IssuesPhoenix does not start a repo or any other process of its own. Every query goes through
+your repo, so it shares your connection pool, your sandbox in tests, and your migrations.
+
 ### 3. Run Migrations
 
 Create a new migration and use the provided migration helper:
@@ -65,6 +68,19 @@ defmodule MyApp.Repo.Migrations.AddIssuesPhoenixTables do
 end
 ```
 
+If your app already has tables called `issues`, `tags` or `categories`, keep IssuesPhoenix in its own
+Postgres schema instead:
+
+```elixir
+def up, do: IssuesPhoenix.Migration.up(prefix: "issues_phoenix")
+def down, do: IssuesPhoenix.Migration.down(prefix: "issues_phoenix")
+```
+
+```elixir
+# config/config.exs
+config :issues_phoenix, repo: MyApp.Repo, prefix: "issues_phoenix"
+```
+
 Run the migration:
 
 ```bash
@@ -73,14 +89,14 @@ mix ecto.migrate
 
 ### 4. Configure Static Assets
 
-To serve the Issues Phoenix CSS and assets, add this to your `lib/my_app_web/endpoint.ex` **before** your existing `Plug.Static`:
+To serve the Issues Phoenix stylesheet, add this to your `lib/my_app_web/endpoint.ex` **before** your existing `Plug.Static`:
 
 ```elixir
 # Serve issues_phoenix assets
 plug Plug.Static,
-  at: "/issues_phoenix/assets",
-  from: {:issues_phoenix, "priv/static/assets"},
-  gzip: false
+  at: "/issues_phoenix",
+  from: {:issues_phoenix, "priv/static"},
+  only: ~w(pico.min.css)
 
 # Your existing Plug.Static
 plug Plug.Static,
@@ -109,25 +125,24 @@ defmodule MyAppWeb.Router do
 end
 ```
 
-> **Note:** If your `:browser` pipeline includes layout plugs, create a dedicated pipeline without them:
->
-> ```elixir
-> pipeline :issues_phoenix do
->   plug :accepts, ["html"]
->   plug :fetch_session
->   plug :fetch_live_flash
->   plug :protect_from_forgery
->   plug :put_secure_browser_headers
->   # Optional: Add basic authentication
->   plug :basic_auth, username: "username", password: "secret"
->   # Do NOT include :put_root_layout or :put_layout
-> end
->
-> scope "/" do
->   pipe_through :issues_phoenix
->   issues_phoenix_routes "/dev/issues"
-> end
-> ```
+`use IssuesPhoenixWeb, :router` only imports `issues_phoenix_routes/2`. Your router's own
+`use Phoenix.Router` stays the only one.
+
+The pages work under any path or nested scope. For example, `scope "/admin"` with
+`issues_phoenix_routes "/issues"` serves them at `/admin/issues`. They always render with
+IssuesPhoenix's own root layout, whatever `put_root_layout` your pipeline sets.
+
+To protect the pages, use a pipeline (e.g. with basic auth) or pass your own LiveView hooks:
+
+```elixir
+scope "/admin" do
+  pipe_through [:browser, :require_admin]
+  issues_phoenix_routes "/issues", on_mount: [{MyAppWeb.UserAuth, :ensure_admin}]
+end
+```
+
+To expose the tracker only in development, wrap the mount in
+`if Application.compile_env(:my_app, :dev_routes) do ... end`.
 
 ## Usage
 
@@ -143,21 +158,12 @@ Visit `/dev/issues` (or your configured path) to start tracking issues.
 ## Configuration Options
 
 ```elixir
-# Either in config/dev.exs or config/prod.exs
-# Depending on your environment
-config :rent, dev_routes: true
-
 config :issues_phoenix,
-  repo: MyApp.Repo,                           # Required: Your Ecto repository
-  assets_path: "/issues_phoenix/assets"       # Optional: Custom assets path
-
-# Configure IssuesPhoenix.Repo to use your current database
-config :issues_phoenix, IssuesPhoenix.Repo,
-  # url: database_url # Alternatively, use a DATABASE_URL environment variable
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "db_dev"
+  repo: MyApp.Repo,                # Required: your Ecto repository
+  prefix: "issues_phoenix",        # Optional: Postgres schema for the tables (default: repo default)
+  router: MyAppWeb.Router,         # Optional: router scanned by "Manage Routes"
+                                   #   (default: the router the pages are mounted in)
+  assets_path: "/issues_phoenix"   # Optional: where you serve pico.min.css
 ```
 
 ## Database Schema
@@ -172,6 +178,14 @@ The Migration module creates these tables:
 - `issues_categories` - Join table for issue-category associations
 
 ## Development
+
+`lib/` is the library. `dev/` holds a standalone harness (`IssuesPhoenix.Repo`, endpoint, router)
+for working on this project by itself. It is only compiled in this project's `:dev` and `:test`
+environments, so host apps never get it.
+
+The tests in `test/issues_phoenix_web/host/` mount the library inside a simulated host app
+(`test/support/test_host`), at `/admin/tracker` with its own repo. Only the host repo gets a
+sandbox connection there, so any query that bypasses the configured repo fails the test.
 
 To work on this library:
 

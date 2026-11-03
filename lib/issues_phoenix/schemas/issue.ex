@@ -16,7 +16,9 @@ defmodule IssuesPhoenix.Schemas.Issue do
 
     belongs_to :tracked_route, IssuesPhoenix.Schemas.TrackedRoute
 
-    many_to_many :tags, IssuesPhoenix.Schemas.Tag, join_through: "issues_tags", on_replace: :delete
+    many_to_many :tags, IssuesPhoenix.Schemas.Tag,
+      join_through: "issues_tags",
+      on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end

@@ -20,12 +20,13 @@ defmodule IssuesPhoenixWeb do
   def static_paths, do: ~w(assets fonts images favicon.ico robots.txt pico.min.css)
 
   @doc """
-  Macro for host applications to mount Issues Phoenix routes.
+  Mounts the IssuesPhoenix pages in a host router.
 
   ## Usage
 
   In your host app's router.ex:
 
+      use MyAppWeb, :router
       use IssuesPhoenixWeb, :router
 
       scope "/" do
@@ -33,34 +34,31 @@ defmodule IssuesPhoenixWeb do
         issues_phoenix_routes "/dev/issues"
       end
 
+  The pages work under any path and nested scope (e.g. `scope "/admin"` +
+  `issues_phoenix_routes "/issues"` serves them at `/admin/issues`).
+
   ## Options
 
-  - `:repo` - The Ecto repo to use (default: from config)
-  - `:layout` - Custom layout tuple (default: uses host's layout)
+    * `:on_mount` - extra `on_mount` hooks for the pages' `live_session`, e.g.
+      your authentication hook. They run after IssuesPhoenix's own hook.
+    * `:live_session_name` - name of the generated `live_session`
+      (default `:issues_phoenix`). Only needed when mounting more than once.
 
-  ## CSS Scoping
-
-  This macro automatically wraps routes with `class="issues-phoenix"` to scope
-  our CSS and avoid conflicts with your host application styles.
+  Pages always render with IssuesPhoenix's own root layout, regardless of the
+  `put_root_layout` in your pipeline, so host styles don't leak in.
   """
   defmacro issues_phoenix_routes(path, opts \\ []) do
     quote bind_quoted: [path: path, opts: opts] do
+      base_path = Phoenix.Router.scoped_path(__MODULE__, path)
+
       scope path, alias: false, as: false do
-        import Phoenix.LiveView.Router
-        import Plug.Conn
+        import Phoenix.LiveView.Router, only: [live: 3, live_session: 3]
 
-        # Force the library's layouts by using a pipeline
-        pipeline :issues_phoenix_layouts do
-          plug :put_root_layout, html: {IssuesPhoenixWeb.Layouts, :root}
-          plug :put_layout, html: {IssuesPhoenixWeb.Layouts, :app}
-        end
-
-        pipe_through :issues_phoenix_layouts
-
-        # All LiveViews use the library's own layouts (root + app) to ensure proper
-        # HTML structure and styling, avoiding conflicts with host app's layout
-        live_session :issues_phoenix,
-          on_mount: {IssuesPhoenixWeb.Hooks, :add_css_scope} do
+        live_session Keyword.get(opts, :live_session_name, :issues_phoenix),
+          root_layout: {IssuesPhoenixWeb.Layouts, :root},
+          on_mount:
+            [{IssuesPhoenixWeb.Hooks, {:init, base_path}}] ++
+              List.wrap(Keyword.get(opts, :on_mount, [])) do
           live "/", IssuesPhoenixWeb.IssuesLive.Index, :index
           live "/new", IssuesPhoenixWeb.IssuesLive.Form, :new
           live "/:id/edit", IssuesPhoenixWeb.IssuesLive.Form, :edit
@@ -71,16 +69,14 @@ defmodule IssuesPhoenixWeb do
     end
   end
 
+  @doc """
+  For host routers: imports `issues_phoenix_routes/2`.
+
+  It deliberately does not `use Phoenix.Router`; your router already does, and
+  using it twice makes the second set of route clauses shadow your routes.
+  """
   def router do
     quote do
-      use Phoenix.Router, helpers: false
-
-      # Import common connection and controller functions to use in pipelines
-      import Plug.Conn
-      import Phoenix.Controller
-      import Phoenix.LiveView.Router
-
-      # Import our routing macro
       import IssuesPhoenixWeb, only: [issues_phoenix_routes: 1, issues_phoenix_routes: 2]
     end
   end

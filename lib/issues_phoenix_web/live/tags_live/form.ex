@@ -1,8 +1,7 @@
 defmodule IssuesPhoenixWeb.TagsLive.Form do
   use IssuesPhoenixWeb, :live_view
 
-  alias IssuesPhoenix.Config
-  alias IssuesPhoenix.Schemas.Tag
+  alias IssuesPhoenix.Issues
 
   @impl true
   def mount(_params, _session, socket) do
@@ -11,13 +10,12 @@ defmodule IssuesPhoenixWeb.TagsLive.Form do
     {:ok,
      socket
      |> assign(:page_title, "Create New Tag")
-     |> assign(:form, to_form(changeset, as: "tag"))
-     |> assign(:issues_phoenix_class, "issues-phoenix")
-     |> assign(:assets_path, Config.assets_path())}
+     |> assign(:form, to_form(changeset, as: "tag"))}
   end
 
   defp change_tag(params \\ %{}) do
     types = %{name: :string}
+
     {%{}, types}
     |> Ecto.Changeset.cast(params, [:name])
     |> Ecto.Changeset.validate_required([:name])
@@ -40,26 +38,22 @@ defmodule IssuesPhoenixWeb.TagsLive.Form do
     if changeset.valid? do
       tag_name = Ecto.Changeset.get_field(changeset, :name) |> String.trim()
 
-      # Create the tag or get existing one
-      tag =
-        case Config.repo().get_by(Tag, name: tag_name) do
-          nil -> Config.repo().insert!(%Tag{name: tag_name})
-          existing -> existing
-        end
+      case Issues.find_or_create_tag(tag_name) do
+        {:ok, tag} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Tag '#{tag.name}' created successfully")
+           |> push_navigate(to: "#{socket.assigns.base_path}/new")}
 
-      {:noreply,
-       socket
-       |> put_flash(:info, "Tag '#{tag.name}' created successfully")
-       |> push_navigate(to: get_return_path(socket))}
+        {:error, tag_changeset} ->
+          {:noreply,
+           assign(socket,
+             form:
+               to_form(%{changeset | errors: tag_changeset.errors, action: :insert}, as: "tag")
+           )}
+      end
     else
       {:noreply, assign(socket, form: to_form(Map.put(changeset, :action, :validate), as: "tag"))}
-    end
-  end
-
-  defp get_return_path(socket) do
-    # Check if there's a return_to in the params, otherwise default to issues index
-    case socket.assigns[:live_action] do
-      _ -> "/dev/issues/new"
     end
   end
 
@@ -72,7 +66,7 @@ defmodule IssuesPhoenixWeb.TagsLive.Form do
           <h1>{@page_title}</h1>
           <p>Create a new tag to categorize issues.</p>
           <div class="actions">
-            <.link navigate="/dev/issues/new" class="secondary">Cancel</.link>
+            <.link navigate={"#{@base_path}/new"} class="secondary">Cancel</.link>
           </div>
         </div>
 

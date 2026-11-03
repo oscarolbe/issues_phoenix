@@ -1,70 +1,49 @@
 defmodule IssuesPhoenix.Config do
   @moduledoc """
-  Configuration helpers for IssuesPhoenix.
+  Runtime configuration read from the host application.
 
-  Provides access to configuration values set in the host application.
+      config :issues_phoenix,
+        repo: MyApp.Repo,                 # required
+        prefix: "issues_phoenix",         # optional Postgres schema for the tables
+        router: MyAppWeb.Router,          # optional, defaults to the mounting router
+        assets_path: "/issues_phoenix"    # optional, where pico.min.css is served
   """
 
   @doc """
-  Gets the Ecto repository module configured for IssuesPhoenix.
-
-  Defaults to the application's main repo if not explicitly configured.
-
-  ## Configuration
-
-      config :issues_phoenix,
-        repo: MyApp.Repo
-
+  The host's Ecto repo. IssuesPhoenix never starts a repo of its own.
   """
   def repo do
-    Application.get_env(:issues_phoenix, :repo) || IssuesPhoenix.Repo
-  end
+    case Application.get_env(:issues_phoenix, :repo) do
+      nil ->
+        raise ArgumentError, """
+        IssuesPhoenix has no repo configured. Point it at your application's repo:
 
-  @doc """
-  Gets the router module to scan for routes.
+            config :issues_phoenix, repo: MyApp.Repo
+        """
 
-  Defaults to IssuesPhoenixWeb.Router if not configured.
-
-  ## Configuration
-
-      config :issues_phoenix,
-        router: MyAppWeb.Router
-
-  """
-  def router do
-    Application.get_env(:issues_phoenix, :router) || IssuesPhoenixWeb.Router
-  end
-
-  @doc """
-  Checks if IssuesPhoenix should be enabled.
-
-  By default, only enabled in development environment.
-
-  ## Configuration
-
-      config :issues_phoenix,
-        enabled: true
-
-  """
-  def enabled? do
-    case Application.get_env(:issues_phoenix, :enabled) do
-      nil -> Mix.env() == :dev
-      value -> value
+      repo ->
+        repo
     end
   end
 
   @doc """
-  Gets the path prefix for serving assets.
+  The Postgres schema (Ecto query prefix) holding the IssuesPhoenix tables.
 
-  Defaults to "/issues_phoenix/assets".
-
-  ## Configuration
-
-      config :issues_phoenix,
-        assets_path: "/my/custom/path"
-
+  `nil` (default) uses the repo's default schema, usually `public`. Set it when
+  your app already has tables named `issues`, `tags`, etc. It must match the
+  `:prefix` given to `IssuesPhoenix.Migration.up/1`.
   """
-  def assets_path do
-    Application.get_env(:issues_phoenix, :assets_path, "/issues_phoenix/assets")
-  end
+  def prefix, do: Application.get_env(:issues_phoenix, :prefix)
+
+  @doc """
+  The router whose routes the "Manage Routes" page scans.
+
+  `nil` (default) means the router IssuesPhoenix is mounted in.
+  """
+  def router, do: Application.get_env(:issues_phoenix, :router)
+
+  @doc """
+  The URL path the host serves IssuesPhoenix static files from.
+  """
+  def assets_path, do: Application.get_env(:issues_phoenix, :assets_path, "/issues_phoenix")
 end

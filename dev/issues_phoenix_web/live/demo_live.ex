@@ -9,7 +9,7 @@ defmodule IssuesPhoenixWeb.DemoLive do
     ~H"""
     <div>
       <h1>Demo LiveView</h1>
-      <p><%= @message %></p>
+      <p>{@message}</p>
     </div>
     """
   end

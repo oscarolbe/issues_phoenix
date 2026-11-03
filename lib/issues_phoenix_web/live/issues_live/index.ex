@@ -1,8 +1,7 @@
 defmodule IssuesPhoenixWeb.IssuesLive.Index do
   use IssuesPhoenixWeb, :live_view
 
-  alias IssuesPhoenix.{Issues, TrackedRoutes, Config}
-  alias IssuesPhoenix.Schemas.Tag
+  alias IssuesPhoenix.{Issues, TrackedRoutes}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -33,12 +32,15 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
 
   @impl true
   def handle_event("filter", params, socket) do
-    filter_status = if params["status"] == "", do: nil, else: String.to_atom(params["status"] || "")
-    filter_tag_id = if params["tag_id"] in [nil, ""], do: nil, else: String.to_integer(params["tag_id"])
+    filter_tag_id =
+      case Integer.parse(params["tag_id"] || "") do
+        {id, ""} -> id
+        _ -> nil
+      end
 
     {:noreply,
      socket
-     |> assign(:filter_status, filter_status)
+     |> assign(:filter_status, Issues.parse_status(params["status"]))
      |> assign(:filter_tag_id, filter_tag_id)
      |> reload_data()}
   end
@@ -59,40 +61,21 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
   # Private helpers
 
   defp reload_data(socket) do
-    # Load all base data
-    tracked_routes = TrackedRoutes.list_tracked_routes()
-    all_tags = Config.repo().all(Tag) |> Enum.sort_by(& &1.name)
-    stats = Issues.stats()
-
-    # Load issues with current filters applied
     issues =
-      filter_issues_by_tag(
-        Issues.list_issues(status: socket.assigns.filter_status)
-        |> Config.repo().preload([:tracked_route, :tags]),
-        socket.assigns.filter_tag_id
+      Issues.list_issues_with_assocs(
+        status: socket.assigns.filter_status,
+        tag_id: socket.assigns.filter_tag_id
       )
 
     socket
     |> assign(:issues, issues)
-    |> assign(:tracked_routes, tracked_routes)
-    |> assign(:all_tags, all_tags)
-    |> assign(:stats, stats)
-  end
-
-  defp filter_issues_by_tag(issues, nil), do: issues
-  defp filter_issues_by_tag(issues, tag_id) do
-    Enum.filter(issues, fn issue ->
-      Enum.any?(issue.tags, &(&1.id == tag_id))
-    end)
+    |> assign(:tracked_routes, TrackedRoutes.list_tracked_routes())
+    |> assign(:all_tags, Issues.list_tags())
+    |> assign(:stats, Issues.stats())
   end
 
   @impl true
   def render(assigns) do
-    assigns =
-      assigns
-      |> Map.put_new(:issues_phoenix_class, "issues-phoenix")
-      |> Map.put_new(:assets_path, Config.assets_path())
-
     ~H"""
     <div class={@issues_phoenix_class}>
       <div class="container">
@@ -100,10 +83,10 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
           <h1>Issues Tracker</h1>
           <p>Track and manage issues for your Phoenix application routes.</p>
           <div class="actions">
-            <.link navigate="/dev/issues/routes" role="button">
+            <.link navigate={"#{@base_path}/routes"} role="button">
               Manage Routes
             </.link>
-            <.link navigate="/dev/issues/new" role="button">
+            <.link navigate={"#{@base_path}/new"} role="button">
               New Issue
             </.link>
           </div>
@@ -145,7 +128,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
                   <option value="closed" selected={@filter_status == :closed}>Closed</option>
                 </select>
               </label>
-              
+
               <label>
                 Tag
                 <select name="tag_id">
@@ -232,7 +215,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
                   <td><.priority_badge priority={issue.priority} /></td>
                   <td>
                     <div class="grid">
-                      <.link navigate={"/dev/issues/#{issue.id}/edit"}>Edit</.link>
+                      <.link navigate={"#{@base_path}/#{issue.id}/edit"}>Edit</.link>
                       <a
                         href="#"
                         phx-click="delete_issue"
@@ -252,7 +235,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Index do
           <%= if @issues == [] do %>
             <article>
               <p>No issues found.</p>
-              <.link navigate="/dev/issues/routes">Start by selecting routes to track</.link>
+              <.link navigate={"#{@base_path}/routes"}>Start by selecting routes to track</.link>
             </article>
           <% end %>
         </section>

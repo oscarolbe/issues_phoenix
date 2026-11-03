@@ -174,8 +174,10 @@ defmodule IssuesPhoenixWeb.IssuesLive.FormTest do
       {:ok, _view, html} = live(conn, "/dev/issues/new")
 
       # Should show all existing tags in the multi-select dropdown
-      assert html =~ tag1.name  # "urgent"
-      assert html =~ tag2.name  # "backend"
+      # "urgent"
+      assert html =~ tag1.name
+      # "backend"
+      assert html =~ tag2.name
       assert html =~ ~s(select multiple)
     end
 
@@ -216,7 +218,6 @@ defmodule IssuesPhoenixWeb.IssuesLive.FormTest do
       assert length(issue.tags) == 1
       assert hd(issue.tags).id == tag1.id
     end
-
   end
 
   describe "edit issue form" do
@@ -381,7 +382,11 @@ defmodule IssuesPhoenixWeb.IssuesLive.FormTest do
       assert html =~ "/uncategorized"
     end
 
-    test "sorts routes by display_order within categories", %{conn: conn, route1: route1, route2: route2} do
+    test "sorts routes by display_order within categories", %{
+      conn: conn,
+      route1: route1,
+      route2: route2
+    } do
       {:ok, _view, html} = live(conn, "/dev/issues/new")
 
       # Both routes should be present

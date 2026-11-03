@@ -6,7 +6,7 @@ defmodule IssuesPhoenix.TrackedRoutes do
   """
 
   import Ecto.Query, warn: false
-  alias IssuesPhoenix.Config
+  alias IssuesPhoenix.DB
   alias IssuesPhoenix.Schemas.TrackedRoute
 
   @doc """
@@ -27,12 +27,10 @@ defmodule IssuesPhoenix.TrackedRoutes do
 
   """
   def list_tracked_routes(opts \\ []) do
-    repo = Config.repo()
-
     TrackedRoute
     |> apply_filters(opts)
-    |> order_by([t], [asc: t.display_order, asc: t.path])
-    |> repo.all()
+    |> order_by([t], asc: t.display_order, asc: t.path)
+    |> DB.all()
   end
 
   @doc """
@@ -41,16 +39,14 @@ defmodule IssuesPhoenix.TrackedRoutes do
   Raises `Ecto.NoResultsError` if the TrackedRoute does not exist.
   """
   def get_tracked_route!(id) do
-    repo = Config.repo()
-    repo.get!(TrackedRoute, id)
+    DB.get!(TrackedRoute, id)
   end
 
   @doc """
   Gets a tracked route by path and method.
   """
   def get_by_path_and_method(path, method) do
-    repo = Config.repo()
-    repo.get_by(TrackedRoute, path: path, method: method)
+    DB.get_by(TrackedRoute, path: path, method: method)
   end
 
   @doc """
@@ -63,30 +59,25 @@ defmodule IssuesPhoenix.TrackedRoutes do
 
   """
   def create_tracked_route(attrs \\ %{}) do
-    repo = Config.repo()
-
     %TrackedRoute{}
     |> TrackedRoute.changeset(attrs)
-    |> repo.insert()
+    |> DB.insert()
   end
 
   @doc """
   Updates a tracked route.
   """
   def update_tracked_route(%TrackedRoute{} = tracked_route, attrs) do
-    repo = Config.repo()
-
     tracked_route
     |> TrackedRoute.changeset(attrs)
-    |> repo.update()
+    |> DB.update()
   end
 
   @doc """
   Deletes a tracked route.
   """
   def delete_tracked_route(%TrackedRoute{} = tracked_route) do
-    repo = Config.repo()
-    repo.delete(tracked_route)
+    DB.delete(tracked_route)
   end
 
   @doc """
@@ -106,7 +97,6 @@ defmodule IssuesPhoenix.TrackedRoutes do
 
   """
   def sync_from_scan(scanned_routes) do
-
     {created, updated} =
       Enum.reduce(scanned_routes, {0, 0}, fn route_info, {created, updated} ->
         case get_by_path_and_method(route_info.path, route_info.method) do
@@ -145,11 +135,9 @@ defmodule IssuesPhoenix.TrackedRoutes do
   Returns all tracked route paths with their methods.
   """
   def tracked_route_identifiers do
-    repo = Config.repo()
-
     TrackedRoute
     |> select([t], {t.path, t.method})
-    |> repo.all()
+    |> DB.all()
   end
 
   @doc """

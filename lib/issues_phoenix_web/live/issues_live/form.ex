@@ -1,9 +1,8 @@
 defmodule IssuesPhoenixWeb.IssuesLive.Form do
   use IssuesPhoenixWeb, :live_view
-  import Ecto.Query
 
-  alias IssuesPhoenix.{Issues, TrackedRoutes, Config}
-  alias IssuesPhoenix.Schemas.{Issue, Tag}
+  alias IssuesPhoenix.{Issues, TrackedRoutes}
+  alias IssuesPhoenix.Schemas.Issue
 
   @impl true
   def mount(params, _session, socket) do
@@ -11,7 +10,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Form do
 
     {issue, page_title} =
       if issue_id do
-        issue = Issues.get_issue!(issue_id) |> Config.repo().preload([:tracked_route, :tags])
+        issue = Issues.get_issue_with_assocs!(issue_id)
         {issue, "Edit Issue"}
       else
         {%Issue{}, "New Issue"}
@@ -25,8 +24,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Form do
     # Build route options for select input with optgroups
     route_options = build_route_options(grouped_routes)
 
-    # Get all existing tags
-    all_tags = Config.repo().all(Tag)
+    all_tags = Issues.list_tags()
 
     # Get existing tags, or empty list for new issues
     existing_tags = if is_list(issue.tags), do: issue.tags, else: []
@@ -45,9 +43,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Form do
      |> assign(:route_options, route_options)
      |> assign(:all_tags, all_tags)
      |> assign(:selected_tag_ids, Enum.map(existing_tags, & &1.id))
-     |> assign(:selected_route, existing_route)
-     |> assign(:issues_phoenix_class, "issues-phoenix")
-     |> assign(:assets_path, Config.assets_path())}
+     |> assign(:selected_route, existing_route)}
   end
 
   @impl true
@@ -89,7 +85,6 @@ defmodule IssuesPhoenixWeb.IssuesLive.Form do
     {:noreply, assign(socket, selected_tag_ids: [])}
   end
 
-
   defp save_issue(socket, nil, issue_params) do
     # New issue
     case Issues.create_issue(issue_params) do
@@ -100,7 +95,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Form do
         {:noreply,
          socket
          |> put_flash(:info, "Issue created successfully")
-         |> push_navigate(to: "/dev/issues")}
+         |> push_navigate(to: socket.assigns.base_path)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
@@ -117,7 +112,7 @@ defmodule IssuesPhoenixWeb.IssuesLive.Form do
         {:noreply,
          socket
          |> put_flash(:info, "Issue updated successfully")
-         |> push_navigate(to: "/dev/issues")}
+         |> push_navigate(to: socket.assigns.base_path)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
@@ -125,22 +120,8 @@ defmodule IssuesPhoenixWeb.IssuesLive.Form do
   end
 
   defp associate_relationships(socket, issue) do
-    repo = Config.repo()
-
-    # Get selected tags
-    tags =
-      if socket.assigns.selected_tag_ids != [] do
-        repo.all(from t in Tag, where: t.id in ^socket.assigns.selected_tag_ids)
-      else
-        []
-      end
-
-    # Associate them
+    {:ok, issue} = Issues.set_issue_tags(issue, socket.assigns.selected_tag_ids)
     issue
-    |> repo.preload(:tags)
-    |> Ecto.Changeset.change()
-    |> Ecto.Changeset.put_assoc(:tags, tags)
-    |> repo.update!()
   end
 
   # Build route options for select input with optgroups

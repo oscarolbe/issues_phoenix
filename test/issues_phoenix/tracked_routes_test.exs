@@ -299,8 +299,20 @@ defmodule IssuesPhoenix.TrackedRoutesTest do
   describe "sync_from_scan/1" do
     test "creates new tracked routes from scan results" do
       scanned_routes = [
-        %{path: "/users", method: "GET", controller: "UserController", action: :index, type: :controller},
-        %{path: "/posts", method: "GET", controller: "PostController", action: :index, type: :controller}
+        %{
+          path: "/users",
+          method: "GET",
+          controller: "UserController",
+          action: :index,
+          type: :controller
+        },
+        %{
+          path: "/posts",
+          method: "GET",
+          controller: "PostController",
+          action: :index,
+          type: :controller
+        }
       ]
 
       assert {:ok, result} = TrackedRoutes.sync_from_scan(scanned_routes)
@@ -324,7 +336,13 @@ defmodule IssuesPhoenix.TrackedRoutesTest do
 
       # Scan with updated controller name
       scanned_routes = [
-        %{path: "/existing", method: "GET", controller: "NewController", action: :index, type: :controller}
+        %{
+          path: "/existing",
+          method: "GET",
+          controller: "NewController",
+          action: :index,
+          type: :controller
+        }
       ]
 
       assert {:ok, result} = TrackedRoutes.sync_from_scan(scanned_routes)
@@ -347,8 +365,20 @@ defmodule IssuesPhoenix.TrackedRoutesTest do
       |> Repo.insert!()
 
       scanned_routes = [
-        %{path: "/old", method: "GET", controller: "UpdatedController", action: :index, type: :controller},
-        %{path: "/new", method: "GET", controller: "NewController", action: :index, type: :controller}
+        %{
+          path: "/old",
+          method: "GET",
+          controller: "UpdatedController",
+          action: :index,
+          type: :controller
+        },
+        %{
+          path: "/new",
+          method: "GET",
+          controller: "NewController",
+          action: :index,
+          type: :controller
+        }
       ]
 
       assert {:ok, result} = TrackedRoutes.sync_from_scan(scanned_routes)
@@ -361,7 +391,13 @@ defmodule IssuesPhoenix.TrackedRoutesTest do
 
     test "handles routes with nil action" do
       scanned_routes = [
-        %{path: "/test", method: "GET", controller: "TestController", action: nil, type: :controller}
+        %{
+          path: "/test",
+          method: "GET",
+          controller: "TestController",
+          action: nil,
+          type: :controller
+        }
       ]
 
       assert {:ok, result} = TrackedRoutes.sync_from_scan(scanned_routes)

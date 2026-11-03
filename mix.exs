@@ -38,7 +38,13 @@ defmodule IssuesPhoenix.MixProject do
   end
 
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  #
+  # `lib/` is the library. `dev/` is a standalone harness (repo, endpoint,
+  # router) used to develop and test this project on its own. Host apps compile
+  # dependencies in :prod, so they only ever get `lib/` and never a second repo
+  # or endpoint.
+  defp elixirc_paths(:test), do: ["lib", "dev", "test/support"]
+  defp elixirc_paths(:dev), do: ["lib", "dev"]
   defp elixirc_paths(_), do: ["lib"]
 
   # Package configuration for Hex
@@ -71,6 +77,7 @@ defmodule IssuesPhoenix.MixProject do
       {:jason, "~> 1.2"},
 
       # Development/Test only
+      {:bandit, "~> 1.5", only: :dev},
       {:lazy_html, ">= 0.1.0", only: :test},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :prod}
     ]
